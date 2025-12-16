@@ -2,10 +2,8 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useUserStore } from '@/store/userStore';
-import { Dice1, Dice2, Dice3, Dice4, Dice5, Dice6, RotateCcw } from 'lucide-react';
+import { RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
-
-const diceIcons = [Dice1, Dice2, Dice3, Dice4, Dice5, Dice6];
 
 export const DiceGame = () => {
   const { user, isAuthenticated, updateBalance, addMinigameResult } = useUserStore();
@@ -15,7 +13,6 @@ export const DiceGame = () => {
   const [isRolling, setIsRolling] = useState(false);
   const [result, setResult] = useState<number | null>(null);
   const [showResult, setShowResult] = useState(false);
-  const [displayDice, setDisplayDice] = useState([1, 1]);
 
   // Calculate multiplier based on target and prediction
   const getMultiplier = () => {
@@ -37,22 +34,9 @@ export const DiceGame = () => {
     setIsRolling(true);
     setShowResult(false);
 
-    // Animate dice
-    let rollCount = 0;
-    const rollInterval = setInterval(() => {
-      setDisplayDice([Math.floor(Math.random() * 6), Math.floor(Math.random() * 6)]);
-      rollCount++;
-      if (rollCount > 15) {
-        clearInterval(rollInterval);
-      }
-    }, 100);
-
     setTimeout(() => {
-      clearInterval(rollInterval);
-      
       const rollResult = Math.random() * 100;
       setResult(rollResult);
-      setDisplayDice([Math.floor(Math.random() * 6), Math.floor(Math.random() * 6)]);
       
       const won = prediction === 'over' ? rollResult > target : rollResult < target;
       const multiplier = getMultiplier();
@@ -60,9 +44,9 @@ export const DiceGame = () => {
 
       if (won) {
         updateBalance(payout);
-        toast.success(`Resultado: ${rollResult.toFixed(2)} - Você ganhou R$ ${payout.toFixed(2)}!`);
+        toast.success(`⚽ GOL! ${rollResult.toFixed(2)} - Você ganhou R$ ${payout.toFixed(2)}!`);
       } else {
-        toast.error(`Resultado: ${rollResult.toFixed(2)} - Você perdeu!`);
+        toast.error(`🧤 DEFESA! ${rollResult.toFixed(2)} - Você perdeu!`);
       }
 
       addMinigameResult({
@@ -83,75 +67,121 @@ export const DiceGame = () => {
     setShowResult(false);
   };
 
-  const DiceIcon1 = diceIcons[displayDice[0]];
-  const DiceIcon2 = diceIcons[displayDice[1]];
+  const winChance = prediction === 'over' ? (100 - target) : target;
 
   return (
     <div className="glass-card p-6">
       <div className="text-center mb-6">
-        <h3 className="font-display text-2xl font-bold text-foreground mb-2">Dice 🎲</h3>
-        <p className="text-muted-foreground text-sm">Acima ou Abaixo do alvo</p>
+        <h3 className="font-display text-2xl font-bold text-foreground mb-2">Dado do Goleiro 🎲</h3>
+        <p className="text-muted-foreground text-sm">Passe pelo goleiro para marcar!</p>
       </div>
 
-      {/* Dice Display */}
-      <div className="flex justify-center gap-4 mb-6">
-        <motion.div
-          animate={{ rotate: isRolling ? 360 : 0 }}
-          transition={{ duration: 0.3, repeat: isRolling ? Infinity : 0, ease: 'linear' }}
-          className="w-16 h-16 bg-gradient-to-br from-primary to-warning rounded-xl flex items-center justify-center shadow-lg"
-        >
-          <DiceIcon1 className="w-10 h-10 text-primary-foreground" />
-        </motion.div>
-        <motion.div
-          animate={{ rotate: isRolling ? -360 : 0 }}
-          transition={{ duration: 0.4, repeat: isRolling ? Infinity : 0, ease: 'linear' }}
-          className="w-16 h-16 bg-gradient-to-br from-accent to-vf4-blue rounded-xl flex items-center justify-center shadow-lg"
-        >
-          <DiceIcon2 className="w-10 h-10 text-accent-foreground" />
-        </motion.div>
-      </div>
-
-      {/* Result Display */}
-      <AnimatePresence>
-        {showResult && result !== null && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className="text-center mb-6"
-          >
-            <div className="font-display text-4xl font-bold text-foreground mb-2">
-              {result.toFixed(2)}
-            </div>
-            <div className={`text-lg font-semibold ${
-              (prediction === 'over' ? result > target : result < target)
-                ? 'text-success'
-                : 'text-destructive'
-            }`}>
-              {(prediction === 'over' ? result > target : result < target) ? '🎉 Ganhou!' : '😔 Perdeu!'}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Target Slider */}
-      <div className="mb-6">
-        <div className="flex justify-between text-sm text-muted-foreground mb-2">
-          <span>Alvo: {target.toFixed(0)}</span>
-          <span>Multiplicador: {getMultiplier().toFixed(2)}x</span>
+      {/* Football Field Visualization */}
+      <div className="relative w-full h-36 bg-gradient-to-t from-neon-green/30 to-neon-green/10 rounded-xl mb-6 overflow-hidden border border-neon-green/30">
+        {/* Field lines */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-16 h-16 border-2 border-foreground/20 rounded-full" />
         </div>
-        <input
-          type="range"
-          min={5}
-          max={95}
-          value={target}
-          onChange={(e) => setTarget(Number(e.target.value))}
-          disabled={isRolling}
-          className="w-full accent-primary"
-        />
+        <div className="absolute top-1/2 left-0 right-0 h-0.5 bg-foreground/20" />
+        
+        {/* Goal area */}
+        <div className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-10 border-2 border-foreground/30 border-t-0 rounded-b-lg">
+          {/* Goalkeeper */}
+          <motion.div
+            animate={{ 
+              x: isRolling ? [0, -20, 20, -10, 10, 0] : 0,
+            }}
+            transition={{ duration: 1.5, ease: 'easeInOut' }}
+            className="absolute bottom-0 left-1/2 -translate-x-1/2 text-2xl"
+          >
+            🧤
+          </motion.div>
+        </div>
+
+        {/* Ball */}
+        <AnimatePresence>
+          {isRolling && (
+            <motion.div
+              initial={{ y: 80, scale: 1 }}
+              animate={{ y: 15, scale: 0.5 }}
+              transition={{ duration: 1.2, ease: 'easeOut' }}
+              className="absolute left-1/2 -translate-x-1/2 text-xl"
+            >
+              ⚽
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Result Display */}
+        <AnimatePresence>
+          {showResult && result !== null && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.5 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm"
+            >
+              <div className="text-center">
+                <div className="text-4xl mb-1">
+                  {(prediction === 'over' ? result > target : result < target) ? '⚽' : '🧤'}
+                </div>
+                <div className="font-display text-2xl font-bold text-foreground">
+                  {result.toFixed(2)}
+                </div>
+                <div className={`text-sm font-semibold ${
+                  (prediction === 'over' ? result > target : result < target)
+                    ? 'text-success'
+                    : 'text-destructive'
+                }`}>
+                  {(prediction === 'over' ? result > target : result < target) ? 'GOL!' : 'DEFESA!'}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Target Slider with Field Design */}
+      <div className="mb-6 relative">
+        <div className="flex justify-between text-sm text-muted-foreground mb-2">
+          <span>🧤 Goleiro: {target.toFixed(0)}</span>
+          <span className="text-primary font-bold">{getMultiplier().toFixed(2)}x</span>
+        </div>
+        
+        {/* Custom slider track styled as field */}
+        <div className="relative h-6 rounded-lg bg-gradient-to-r from-neon-green/20 via-secondary to-neon-green/20 border border-border overflow-hidden">
+          {/* Filled portion */}
+          <div 
+            className={`absolute top-0 h-full transition-all duration-200 ${
+              prediction === 'under' 
+                ? 'left-0 bg-success/30' 
+                : 'right-0 bg-success/30'
+            }`}
+            style={{ 
+              width: prediction === 'under' ? `${target}%` : `${100 - target}%`
+            }}
+          />
+          
+          {/* Goalkeeper position marker */}
+          <div 
+            className="absolute top-0 h-full w-1 bg-foreground/50 transition-all"
+            style={{ left: `${target}%` }}
+          />
+          
+          {/* Slider input */}
+          <input
+            type="range"
+            min={5}
+            max={95}
+            value={target}
+            onChange={(e) => setTarget(Number(e.target.value))}
+            disabled={isRolling}
+            className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+          />
+        </div>
+        
         <div className="flex justify-between text-xs text-muted-foreground mt-1">
           <span>5</span>
-          <span>50</span>
+          <span>Chance: {winChance.toFixed(0)}%</span>
           <span>95</span>
         </div>
       </div>
@@ -162,17 +192,19 @@ export const DiceGame = () => {
           variant={prediction === 'under' ? 'bet-selected' : 'bet'}
           onClick={() => !isRolling && setPrediction('under')}
           disabled={isRolling}
-          className="h-12"
+          className="h-12 flex flex-col gap-0"
         >
-          ⬇️ Abaixo de {target}
+          <span className="text-sm">⬇️ Abaixo de {target}</span>
+          <span className="text-xs text-muted-foreground">({target}% chance)</span>
         </Button>
         <Button
           variant={prediction === 'over' ? 'bet-selected' : 'bet'}
           onClick={() => !isRolling && setPrediction('over')}
           disabled={isRolling}
-          className="h-12"
+          className="h-12 flex flex-col gap-0"
         >
-          ⬆️ Acima de {target}
+          <span className="text-sm">⬆️ Acima de {target}</span>
+          <span className="text-xs text-muted-foreground">({100 - target}% chance)</span>
         </Button>
       </div>
 
@@ -211,7 +243,7 @@ export const DiceGame = () => {
             onClick={handleRoll}
             disabled={isRolling}
           >
-            🎲 {isRolling ? 'Rolando...' : 'Rolar Dados'}
+            ⚽ {isRolling ? 'Chutando...' : 'Chutar!'}
           </Button>
         )}
       </div>

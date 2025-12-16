@@ -46,9 +46,9 @@ export const CoinflipGame = () => {
 
       if (won) {
         updateBalance(payout);
-        toast.success(`Você ganhou R$ ${payout.toFixed(2)}!`);
+        toast.success(`🪙 Você ganhou R$ ${payout.toFixed(2)}!`);
       } else {
-        toast.error('Você perdeu!');
+        toast.error('😔 Você perdeu!');
       }
 
       addMinigameResult({
@@ -58,7 +58,7 @@ export const CoinflipGame = () => {
         result: won ? 'win' : 'lose',
         payout,
       });
-    }, 2000);
+    }, 2500);
   };
 
   const resetGame = () => {
@@ -74,24 +74,70 @@ export const CoinflipGame = () => {
         <p className="text-muted-foreground text-sm">Cara ou Coroa - 1.95x</p>
       </div>
 
-      {/* Coin */}
-      <div className="flex justify-center mb-8">
-        <motion.div
-          animate={{ rotateY: isFlipping ? 1800 : 0 }}
-          transition={{ duration: 2, ease: 'easeOut' }}
-          className="relative w-32 h-32"
-          style={{ transformStyle: 'preserve-3d' }}
-        >
-          <div 
-            className={`absolute inset-0 rounded-full flex items-center justify-center text-5xl shadow-lg ${
-              result === 'heads' || (!result && selectedSide === 'heads')
-                ? 'bg-gradient-to-br from-primary to-warning'
-                : 'bg-gradient-to-br from-accent to-vf4-blue'
-            }`}
-          >
-            {showResult ? (result === 'heads' ? '👑' : '🦅') : '?'}
+      {/* Two-Face Character & Coin */}
+      <div className="flex justify-center items-center gap-6 mb-8 min-h-[160px]">
+        {/* Two-Face Character */}
+        <div className="relative">
+          <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-border shadow-lg">
+            <div className="w-full h-full flex">
+              {/* Clean side */}
+              <div className="w-1/2 h-full bg-gradient-to-r from-primary/40 to-primary/20 flex items-center justify-center">
+                <span className="text-xl">😊</span>
+              </div>
+              {/* Chaotic side */}
+              <div className="w-1/2 h-full bg-gradient-to-l from-destructive/40 to-destructive/20 flex items-center justify-center">
+                <span className="text-xl">😈</span>
+              </div>
+            </div>
           </div>
-        </motion.div>
+          {/* Arm throwing coin */}
+          <motion.div
+            animate={{ rotate: isFlipping ? [0, -45, 0] : 0 }}
+            transition={{ duration: 0.4 }}
+            className="absolute -right-4 top-6 text-2xl origin-left"
+          >
+            🤚
+          </motion.div>
+        </div>
+
+        {/* Coin */}
+        <div style={{ perspective: '1000px' }}>
+          <motion.div
+            animate={{ 
+              rotateY: isFlipping ? 1800 : 0,
+              y: isFlipping ? [-60, 0] : 0,
+            }}
+            transition={{ 
+              rotateY: { duration: 2.5, ease: 'easeOut' },
+              y: { duration: 1.25, times: [0, 1], ease: 'easeOut' }
+            }}
+            className="relative w-24 h-24"
+            style={{ transformStyle: 'preserve-3d' }}
+          >
+            {/* Heads side */}
+            <div 
+              className={`absolute inset-0 rounded-full flex items-center justify-center shadow-lg border-4 ${
+                showResult && result === 'heads' 
+                  ? 'border-success' 
+                  : 'border-primary/50'
+              } bg-gradient-to-br from-primary to-warning`}
+              style={{ backfaceVisibility: 'hidden' }}
+            >
+              <span className="text-4xl">👑</span>
+            </div>
+            {/* Tails side */}
+            <div 
+              className={`absolute inset-0 rounded-full flex items-center justify-center shadow-lg border-4 ${
+                showResult && result === 'tails' 
+                  ? 'border-success' 
+                  : 'border-accent/50'
+              } bg-gradient-to-br from-accent to-vf4-blue`}
+              style={{ backfaceVisibility: 'hidden', transform: 'rotateY(180deg)' }}
+            >
+              <span className="text-4xl">🦅</span>
+            </div>
+          </motion.div>
+        </div>
       </div>
 
       {/* Selection */}
@@ -165,7 +211,7 @@ export const CoinflipGame = () => {
             disabled={!selectedSide || isFlipping}
           >
             <Coins className="w-4 h-4" />
-            {isFlipping ? 'Girando...' : 'Jogar'}
+            {isFlipping ? 'Girando...' : 'Lançar Moeda'}
           </Button>
         )}
       </div>

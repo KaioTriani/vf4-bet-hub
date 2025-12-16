@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/button';
 import { useUserStore } from '@/store/userStore';
-import { Target, ShieldCheck, Crosshair, RotateCcw, Trophy } from 'lucide-react';
+import { Target, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
 type Direction = 'left' | 'center' | 'right';
@@ -36,8 +36,9 @@ export const PenaltyPredictor = () => {
   const [selectedHeight, setSelectedHeight] = useState<Height | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [result, setResult] = useState<PenaltyResult | null>(null);
-  const [ballPosition, setBallPosition] = useState({ x: 0, y: 0 });
   const [showResult, setShowResult] = useState(false);
+  const [kickerState, setKickerState] = useState<'idle' | 'running' | 'kicked'>('idle');
+  const [goalkeeperPosition, setGoalkeeperPosition] = useState<{ dir: Direction; ht: Height } | null>(null);
 
   // Dynamic odds based on position
   const getOdds = useCallback((dir: Direction, height: Height) => {
@@ -55,7 +56,7 @@ export const PenaltyPredictor = () => {
       return;
     }
     if (!selectedDirection || !selectedHeight) {
-      toast.error('Selecione direção e altura');
+      toast.error('Selecione direção e altura do chute');
       return;
     }
     if (!user || user.balance < bet) {
@@ -66,8 +67,10 @@ export const PenaltyPredictor = () => {
     updateBalance(-bet);
     setIsAnimating(true);
     setShowResult(false);
+    setKickerState('running');
+    setGoalkeeperPosition(null);
 
-    // Simulate goalkeeper save
+    // Simulate goalkeeper save position (randomly determined)
     const directions: Direction[] = ['left', 'center', 'right'];
     const heights: Height[] = ['low', 'mid', 'high'];
     
@@ -76,20 +79,22 @@ export const PenaltyPredictor = () => {
     const saveDir = directions[Math.floor(Math.random() * 3)];
     const saveHt = heights[Math.floor(Math.random() * 3)];
 
-    // Calculate if it's a goal
-    const isGoal = kickDir !== saveDir || kickHt !== saveHt;
-    const odds = getOdds(kickDir, kickHt);
-    const payout = isGoal ? bet * odds : 0;
-
-    // Animate ball
-    const dirX = { left: -100, center: 0, right: 100 };
-    const htY = { low: 50, mid: 0, high: -50 };
-
+    // Kicker runs and kicks
     setTimeout(() => {
-      setBallPosition({ x: dirX[kickDir], y: htY[kickHt] });
-    }, 300);
+      setKickerState('kicked');
+    }, 600);
 
+    // Goalkeeper jumps
     setTimeout(() => {
+      setGoalkeeperPosition({ dir: saveDir, ht: saveHt });
+    }, 800);
+
+    // Calculate result - Goal if goalkeeper doesn't match the kick
+    setTimeout(() => {
+      const isGoal = kickDir !== saveDir || kickHt !== saveHt;
+      const odds = getOdds(kickDir, kickHt);
+      const payout = isGoal ? bet * odds : 0;
+
       setResult({
         kickDirection: kickDir,
         kickHeight: kickHt,
@@ -101,9 +106,9 @@ export const PenaltyPredictor = () => {
 
       if (isGoal) {
         updateBalance(payout);
-        toast.success(`GOOOL! Você ganhou R$ ${payout.toFixed(2)}!`);
+        toast.success(`⚽ GOOOL! Você ganhou R$ ${payout.toFixed(2)}!`);
       } else {
-        toast.error('Defendido! Tente novamente.');
+        toast.error('🧤 Goleiro defendeu! Tente novamente.');
       }
 
       addMinigameResult({
@@ -116,7 +121,7 @@ export const PenaltyPredictor = () => {
 
       setIsAnimating(false);
       setShowResult(true);
-    }, 1500);
+    }, 1600);
   };
 
   const resetGame = () => {
@@ -124,24 +129,39 @@ export const PenaltyPredictor = () => {
     setSelectedHeight(null);
     setResult(null);
     setShowResult(false);
-    setBallPosition({ x: 0, y: 0 });
+    setKickerState('idle');
+    setGoalkeeperPosition(null);
+  };
+
+  const getGoalkeeperTransform = () => {
+    if (!goalkeeperPosition) return { x: 0, y: 0 };
+    const xMap = { left: -50, center: 0, right: 50 };
+    const yMap = { low: 15, mid: 0, high: -20 };
+    return { x: xMap[goalkeeperPosition.dir], y: yMap[goalkeeperPosition.ht] };
+  };
+
+  const getBallPosition = () => {
+    if (!selectedDirection || !selectedHeight) return { x: 0, y: 0 };
+    const xMap = { left: -70, center: 0, right: 70 };
+    const yMap = { low: 60, mid: 30, high: 5 };
+    return { x: xMap[selectedDirection], y: yMap[selectedHeight] };
   };
 
   return (
     <div className="glass-card p-6 max-w-2xl mx-auto">
       <div className="text-center mb-8">
         <h3 className="font-display text-2xl font-bold text-foreground mb-2">
-          Penalty Predictor ⚽
+          Penalty Predictor 🥅
         </h3>
         <p className="text-muted-foreground">
-          Escolha onde chutar e vença o goleiro!
+          Escolha a direção do chute e vença o goleiro!
         </p>
       </div>
 
       {/* Goal Visualization */}
-      <div className="relative w-full aspect-[16/10] bg-gradient-to-b from-neon-green/20 to-neon-green/5 rounded-xl mb-8 overflow-hidden border border-neon-green/30">
+      <div className="relative w-full aspect-[16/10] bg-gradient-to-b from-vf4-blue/20 to-neon-green/20 rounded-xl mb-8 overflow-hidden border border-neon-green/30">
         {/* Goal Frame */}
-        <div className="absolute inset-x-8 top-4 bottom-20 border-4 border-foreground/80 rounded-t-lg">
+        <div className="absolute inset-x-8 top-4 bottom-24 border-4 border-foreground/80 rounded-t-lg">
           {/* Net pattern */}
           <div 
             className="absolute inset-0 opacity-20"
@@ -186,29 +206,52 @@ export const PenaltyPredictor = () => {
             )}
           </div>
 
+          {/* Goalkeeper */}
+          <motion.div
+            animate={getGoalkeeperTransform()}
+            transition={{ duration: 0.3, ease: 'easeOut' }}
+            className="absolute left-1/2 bottom-1 -translate-x-1/2 text-3xl z-10"
+          >
+            🧤
+          </motion.div>
+
           {/* Ball Animation */}
           <AnimatePresence>
-            {isAnimating && (
+            {kickerState === 'kicked' && selectedDirection && selectedHeight && (
               <motion.div
-                initial={{ scale: 1, x: 0, y: 100 }}
+                initial={{ y: 120, x: 0, scale: 1, opacity: 1 }}
                 animate={{ 
-                  scale: 0.5, 
-                  x: ballPosition.x, 
-                  y: ballPosition.y,
+                  y: getBallPosition().y,
+                  x: getBallPosition().x,
+                  scale: 0.7,
+                  opacity: 1,
                 }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
-                className="absolute left-1/2 bottom-0 -translate-x-1/2"
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+                className="absolute left-1/2 bottom-0 -translate-x-1/2 text-2xl z-20"
               >
-                <div className="w-12 h-12 rounded-full bg-foreground shadow-lg flex items-center justify-center text-2xl">
-                  ⚽
-                </div>
+                ⚽
               </motion.div>
             )}
           </AnimatePresence>
         </div>
 
-        {/* Grass line */}
-        <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-neon-green/30 to-transparent" />
+        {/* Grass */}
+        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-neon-green/40 to-neon-green/10" />
+
+        {/* Penalty spot */}
+        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-foreground/60" />
+
+        {/* Kicker */}
+        <motion.div
+          animate={{ 
+            x: kickerState === 'running' ? 15 : kickerState === 'kicked' ? 25 : 0,
+            rotate: kickerState === 'kicked' ? 20 : 0,
+          }}
+          transition={{ duration: 0.3 }}
+          className="absolute bottom-14 left-1/2 -translate-x-1/2 text-3xl"
+        >
+          {kickerState === 'idle' ? '🧍' : kickerState === 'running' ? '🏃' : '🦵'}
+        </motion.div>
 
         {/* Result Overlay */}
         <AnimatePresence>
@@ -217,7 +260,7 @@ export const PenaltyPredictor = () => {
               initial={{ opacity: 0, scale: 0.5 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.5 }}
-              className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm"
+              className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm z-30"
             >
               <div className="text-center">
                 {result.isGoal ? (
@@ -296,7 +339,7 @@ export const PenaltyPredictor = () => {
               disabled={!selectedDirection || !selectedHeight || isAnimating}
             >
               <Target className="w-4 h-4" />
-              {isAnimating ? 'Chutando...' : 'Chutar!'}
+              {isAnimating ? 'Cobrando...' : 'Cobrar Pênalti!'}
             </Button>
           )}
         </div>
@@ -304,4 +347,3 @@ export const PenaltyPredictor = () => {
     </div>
   );
 };
-
